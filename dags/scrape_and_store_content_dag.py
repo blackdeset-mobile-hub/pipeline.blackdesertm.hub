@@ -49,8 +49,8 @@ def scrape_and_store_content_dag():
             os.makedirs(parquet_folder, exist_ok=True)
 
             df = pd.DataFrame([post])
-            df.to_parquet(f'{data_dir}/{parquet_file_path}', engine="pyarrow", compression="snappy")
-            df.to_csv(f'{data_dir}/{csv_file_path}', index=False)
+            df.to_parquet(f"{data_dir}/{parquet_file_path}", engine="pyarrow", compression="snappy")
+            df.to_csv(f"{data_dir}/{csv_file_path}", index=False)
             saved_file_paths.append(parquet_file_path)
 
             logger.info(f"Saved post {current_content_no} to {parquet_file_path} and {csv_file_path}")
@@ -63,11 +63,13 @@ def scrape_and_store_content_dag():
 
     @task
     def upload_to_gcs(files: list, bucket_name: str) -> None:
-        storage.upload_files_to_gcs(files, bucket_name)
+        storage.upload_files_to_gcs(files, bucket_name, "raw")
 
     @task
     def load_to_bq(bucket_name: str, dataset_id: str, table_id: str, **kwargs) -> None:
-        operator = storage.load_files_to_bigquery(bucket_name, dataset_id, table_id)
+        current_time = pendulum.now()
+        gcs_source_uri = f"gs://{bucket_name}/raw/{current_time.year}/{current_time.month}/{current_time.day}/*.parquet"
+        operator = storage.load_files_to_bigquery(gcs_source_uri, dataset_id, table_id)
         operator.execute(context=kwargs)
 
     bucket_name = "blackdesert-mobile-hub-scraping-data-bucket"
