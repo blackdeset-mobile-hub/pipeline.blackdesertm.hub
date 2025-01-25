@@ -1,12 +1,9 @@
 import os
 import logging
 import pendulum
-import pandas as pd
 
 from airflow.decorators import dag, task
 from airflow.models import Variable
-from airflow.providers.google.cloud.hooks.gcs import GCSHook
-from airflow.providers.google.cloud.operators.bigquery import BigQueryInsertJobOperator
 from datetime import datetime
 
 from modules import scraper, storage
@@ -75,17 +72,17 @@ def scrape_and_store_content_dag():
         storage.upload_files_to_gcs(files, bucket_name, "raw")
 
     @task
-    def load_to_bq(bucket_name: str, dataset_id: str, table_id: str, **kwargs) -> None:
-        current_time = pendulum.now()
-        gcs_source_uri = f"gs://{bucket_name}/raw/{current_time.year}/{current_time.month}/{current_time.day}/*.parquet"
-        operator = storage.load_files_to_bigquery(gcs_source_uri, dataset_id, table_id)
-        operator.execute(context=kwargs)
+    def load_to_bq(files: list, bucket_name: str, dataset_id: str, table_id: str, **kwargs) -> None:
+        for file in files:
+            gcs_source_uri = f"gs://{bucket_name}/{file}"
+            operator = storage.load_files_to_bigquery(gcs_source_uri, dataset_id, table_id)
+            operator.execute(context=kwargs)
 
     bucket_name = "blackdesert-mobile-hub-scraping-data-bucket"
     dataset_id = "blackdesert_mobile_hub_data"
     table_id = "blackdesert_mobile_hub_scraping"
 
     files = scrape_content()
-    upload_to_gcs(files, bucket_name) >> load_to_bq(bucket_name, dataset_id, table_id)
+    upload_to_gcs(files, bucket_name) >> load_to_bq(files, bucket_name, dataset_id, table_id)
 
 scrape_and_store_content_dag()

@@ -63,16 +63,17 @@ def backup_historical_data_dag():
         storage.upload_files_to_gcs(files, bucket_name, "archive/post")
 
     @task
-    def load_backup_to_bq(bucket_name: str, dataset_id: str, table_id: str, **kwargs) -> None:
-        gcs_source_uri = f"gs://{bucket_name}/archive/post/*.parquet"
-        operator = storage.load_files_to_bigquery(gcs_source_uri, dataset_id, table_id)
-        operator.execute(context=kwargs)
+    def load_backup_to_bq(files: list, bucket_name: str, dataset_id: str, table_id: str, **kwargs) -> None:
+        for file in files:
+            gcs_source_uri = f"gs://{bucket_name}/{file}"
+            operator = storage.load_files_to_bigquery(gcs_source_uri, dataset_id, table_id)
+            operator.execute(context=kwargs)
 
     bucket_name = "blackdesert-mobile-hub-scraping-data-bucket"
     dataset_id = "blackdesert_mobile_hub_data"
     table_id = "blackdesert_mobile_hub_scraping"
 
     files = backup_past_data()
-    upload_backup_to_gcs(files, bucket_name) >> load_backup_to_bq(bucket_name, dataset_id, table_id)
+    upload_backup_to_gcs(files, bucket_name) >> load_backup_to_bq(files, bucket_name, dataset_id, table_id)
 
 backup_historical_data_dag()
