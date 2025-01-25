@@ -1,7 +1,5 @@
-import os
 import logging
 import pendulum
-import pandas as pd
 
 from airflow.decorators import dag, task
 from airflow.models import Variable
@@ -25,38 +23,40 @@ def backup_historical_data_dag():
         start_content_no = Variable.get("start_content_no", default_var=385)
         current_content_no = int(start_content_no)
         
-        backed_up_posts = []
+        backed_up_posts = {}
+        backed_file_paths = []
         current_time = pendulum.now()
 
         logger.info(f"Starting backup from content_no: {current_content_no}")
-        while True:
+        while current_content_no < 500:
             post = scraper.fetch_blackdesert_post(current_content_no)
             current_content_no += 1
             if not post:
                 continue
-            post_datetime = pendulum.parse(post["date"])
 
-            if post_datetime >= current_time:
-                logger.info(f"Post date {post_datetime} is greater than current date. Stopping backup.")
+            created_time = pendulum.parse(post["created_at"])
+            if created_time >= current_time:
+                logger.info(f"Post date {created_time} is greater than current date. Stopping backup.")
                 break
-            
-            backed_up_posts.append(post)
-            logger.info(f"Backed up post {current_content_no}")
 
-        current_content_no -= 1
-        data_dir = Variable.get("data_dir")
-        df = pd.DataFrame(backed_up_posts)
-        
-        parquet_file_path = f"{start_content_no}_{current_content_no}.parquet"
-        csv_file_path = f"{start_content_no}_{current_content_no}.csv"
+            backed_up_posts.setdefault(created_time.year, [])
+            backed_up_posts[created_time.year].append(post)
 
-        df.to_parquet(f'{data_dir}/{parquet_file_path}', engine="pyarrow", compression="snappy")
-        df.to_csv(f'{data_dir}/{csv_file_path}', index=False)
-        
-        Variable.set("content_no", current_content_no)
+        for year, posts in backed_up_posts.items():
+            if posts:
+                post_id = f"{posts[0]["post_id"]}_{posts[-1]["post_id"]}"
+                parquet_file_path = f"{year}_{post_id}.parquet"
+                csv_file_path = f"{year}_{post_id}.csv"
+                
+                storage.save_dataframe_to_files(posts, parquet_file_path, csv_file_path)
+                backed_file_paths.append(parquet_file_path)
+
+                logger.info(f"Backup post {post_id} to {csv_file_path}")
+
+        Variable.set("last_content_no", current_content_no)
         logger.info(f"Updated content_no to {current_content_no}")
 
-        return [parquet_file_path]
+        return backed_file_paths
 
     @task
     def upload_backup_to_gcs(files: list, bucket_name: str) -> None:
@@ -73,6 +73,6 @@ def backup_historical_data_dag():
     table_id = "blackdesert_mobile_hub_scraping"
 
     files = backup_past_data()
-    upload_backup_to_gcs(files, bucket_name) >> load_backup_to_bq(bucket_name, dataset_id, table_id)
+    #upload_backup_to_gcs(files, bucket_name) >> load_backup_to_bq(bucket_name, dataset_id, table_id)
 
 backup_historical_data_dag()
