@@ -73,6 +73,6 @@ def backup_historical_data_dag():
     table_id = "blackdesert_mobile_hub_scraping"
 
     files = backup_past_data()
-    #upload_backup_to_gcs(files, bucket_name) >> load_backup_to_bq(bucket_name, dataset_id, table_id)
+    upload_backup_to_gcs(files, bucket_name) >> load_backup_to_bq(bucket_name, dataset_id, table_id)
 
 backup_historical_data_dag()

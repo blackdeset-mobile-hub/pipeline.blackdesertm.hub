@@ -24,7 +24,7 @@ def scrape_and_store_content_dag():
 
     @task
     def scrape_content() -> list:
-        last_content_no = Variable.get("last_content_no", default_var=617741)
+        last_content_no = Variable.get("last_content_no", default_var=617749)
         current_content_no = int(last_content_no)
         
         scraped_posts = {}
@@ -86,6 +86,6 @@ def scrape_and_store_content_dag():
     table_id = "blackdesert_mobile_hub_scraping"
 
     files = scrape_content()
-    #upload_to_gcs(files, bucket_name) >> load_to_bq(bucket_name, dataset_id, table_id)
+    upload_to_gcs(files, bucket_name) >> load_to_bq(bucket_name, dataset_id, table_id)
 
 scrape_and_store_content_dag()
