@@ -4,7 +4,6 @@ import pandas as pd
 from airflow.providers.google.cloud.hooks.gcs import GCSHook
 from airflow.providers.google.cloud.operators.bigquery import BigQueryInsertJobOperator
 from airflow.models import Variable
-from datetime import datetime
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -26,7 +25,7 @@ def upload_files_to_gcs(files_to_upload: list, bucket_name: str, bucket_path: st
     """
     Upload scraped data files to Google Cloud Storage.
     """
-    gcs_hook = GCSHook(gcp_conn_id="blackdesert-mobile-hub-key")
+    gcs_hook = GCSHook(gcp_conn_id="gcp_conn")
     data_dir = Variable.get("data_dir")
 
     for file in files_to_upload:
@@ -40,16 +39,15 @@ def load_files_to_bigquery(gcs_source_uri: str, dataset_id: str, table_id: str) 
     """
     Load data from GCS into BigQuery for analysis.
     """
-    
     logger.info(f"Preparing to load data from GCS URI: {gcs_source_uri} into BigQuery table: {dataset_id}.{table_id}")
 
     load_operator = BigQueryInsertJobOperator(
-        task_id="load_to_bigquery",
+        task_id="load_files_to_bigquery",
         configuration={
             "load": {
                 "sourceUris": [gcs_source_uri],
                 "destinationTable": {
-                    "projectId": "blackdesert-mobile-hub",
+                    "projectId": Variable.get("project_id"),
                     "datasetId": dataset_id,
                     "tableId": table_id,
                 },
@@ -57,7 +55,7 @@ def load_files_to_bigquery(gcs_source_uri: str, dataset_id: str, table_id: str) 
                 "autodetect": True
             }
         },
-        gcp_conn_id="blackdesert-mobile-hub-key",
+        gcp_conn_id="gcp_conn",
     )
 
     return load_operator

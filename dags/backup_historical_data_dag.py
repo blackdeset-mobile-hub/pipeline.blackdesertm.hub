@@ -1,4 +1,3 @@
-import os
 import logging
 import pendulum
 
@@ -22,7 +21,6 @@ def backup_historical_data_dag():
     def _save_scraped_data(scrape_dict: dict, is_reply: bool = False) -> list:
         """Save scraped data to Parquet and CSV files."""
         file_paths_saved = []
-        
         for year, posts in scrape_dict.items():
             if posts:
                 post_id = f"{posts[0]['post_id']}_{posts[-1]['post_id']}"
@@ -78,31 +76,31 @@ def backup_historical_data_dag():
         }
 
     @task
-    def upload_to_gcs(contents: dict, bucket_name: str) -> None:
+    def upload_to_gcs(contents: dict, ) -> None:
         """Upload files to Google Cloud Storage."""
+        bucket_name = Variable.get("bucket_name")
+
         storage.upload_files_to_gcs(contents["post"], bucket_name, "archive")
         storage.upload_files_to_gcs(contents["reply"], bucket_name, "archive")
 
     @task
-    def load_to_bq(contents: dict, bucket_name: str, **kwargs) -> None:
+    def load_to_bq(contents: dict, **kwargs) -> None:
         """Load files from GCS to BigQuery."""
-        dataset_id = "blackdesert_mobile_hub_data"
-        posts_table = "blackdesert_mobile_hub_scraping_post"
-        replies_table = "blackdesert_mobile_hub_scraping_reply"
+        bucket_name = Variable.get("bucket_name")
+        posts_table = "scraping_post"
+        replies_table = "scraping_reply"
 
         for post in contents["post"]:
             gcs_source_uri = f"gs://{bucket_name}/archive/{post}"
-            operator = storage.load_files_to_bigquery(gcs_source_uri, dataset_id, posts_table)
+            operator = storage.load_files_to_bigquery(gcs_source_uri, "raw_data", posts_table)
             operator.execute(context=kwargs)
 
         for reply in contents["reply"]:
             gcs_source_uri = f"gs://{bucket_name}/archive/{reply}"
-            operator = storage.load_files_to_bigquery(gcs_source_uri, dataset_id, replies_table)
+            operator = storage.load_files_to_bigquery(gcs_source_uri, "raw_data", replies_table)
             operator.execute(context=kwargs)
 
-    bucket_name = "blackdesert-mobile-hub-scraping-data-bucket"
-
     contents = scrape_content()
-    upload_to_gcs(contents, bucket_name) >> load_to_bq(contents, bucket_name)
+    upload_to_gcs(contents) >> load_to_bq(contents)
 
 backup_historical_data_dag()
