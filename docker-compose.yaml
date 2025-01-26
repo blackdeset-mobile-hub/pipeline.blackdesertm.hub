@@ -53,8 +53,12 @@ x-airflow-common:
   # build: .
   environment:
     &airflow-common-env
-    AIRFLOW_VAR_START_CONTENT_NO: 385
+    AIRFLOW_CONN_GCP_CONN: google-cloud-platform://?key_path=/opt/airflow/config/key.json&scope=https://www.googleapis.com/auth/cloud-platform&project=blackdesert-mobile-hub&num_retries=5
+    AIRFLOW_VAR_PROJECT_ID: blackdesert-mobile-hub
+    AIRFLOW_VAR_BUCKET_NAME: blackdesert-mobile-hub-scraping-data-bucket
+    AIRFLOW_VAR_ANALYTICS_DIR: /opt/airflow/analytics
     AIRFLOW_VAR_DATA_DIR: /opt/airflow/data
+    AIRFLOW_VAR_START_CONTENT_NO: 385
     AIRFLOW__CORE__EXECUTOR: CeleryExecutor
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
     AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@postgres/airflow
@@ -75,6 +79,7 @@ x-airflow-common:
     # If you want to use it, outcomment it and replace airflow.cfg with the name of your config file
     # AIRFLOW_CONFIG: '/opt/airflow/config/airflow.cfg'
   volumes:
+    - ${AIRFLOW_PROJ_DIR:-.}/analytics:/opt/airflow/analytics
     - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
     - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
     - ${AIRFLOW_PROJ_DIR:-.}/data:/opt/airflow/data
@@ -238,8 +243,8 @@ services:
           echo "   https://airflow.apache.org/docs/apache-airflow/stable/howto/docker-compose/index.html#before-you-begin"
           echo
         fi
-        mkdir -p /sources/dags /sources/dags/modules /sources/data /sources/logs /sources/plugins 
-        chown -R "${AIRFLOW_UID}:0" /sources/{dags,dags/modules,data,logs,plugins}
+        mkdir -p /sources/analytics /sources/dags /sources/dags/modules /sources/data /sources/logs /sources/plugins 
+        chown -R "${AIRFLOW_UID}:0" /sources/{analytics,dags,dags/modules,data,logs,plugins}
         exec /entrypoint airflow version
     # yamllint enable rule:line-length
     environment:
