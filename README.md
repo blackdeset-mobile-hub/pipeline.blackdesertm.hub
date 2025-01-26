@@ -35,25 +35,29 @@ The repository includes the following DAGs:
    git clone https://github.com/leewr9/pipeline.blackdesertm.hub.git
    cd pipeline.blackdesertm.hub
    ```
-2. Set up environment variables in `.env` (if required):
-   - Example `.env` file:
-     ```env
-     AIRFLOW_UID=50000
-     ```
+
+2. Set up the service account JSON file:
+   - Place your GCP service account JSON file as `key.json` in the `/opt/airflow/config/` directory.
+
+3. Set the environment variables in the `docker-compose.yml` file:
+   ```yaml
+    environment:
+      - AIRFLOW_CONN_GCP_CONN=google-cloud-platform://?key_path=...&project=<project_id>&num_retries=5
+      - AIRFLOW_VAR_PROJECT_ID=<your_project_id>
+      - AIRFLOW_VAR_BUCKET_NAME=<your_bucket_name>
+   ```
 
 ### Running Airflow
 1. Start the Airflow services using Docker Compose:
    ```bash
    docker-compose up -d
    ```
+
 2. Access the Airflow web interface at [http://localhost:8080](http://localhost:8080).
+
 3. Log in with the default credentials:
    - Username: `airflow`
    - Password: `airflow`
-
-### DAG Configuration
-- Airflow Connections:
-  - `blackdesert-mobile-hub-key`: Connection to Google Cloud Platform.
 
 ### DAG Execution
 - Trigger the desired DAG (`scrape_and_store_content_dag` or `backup_historical_data_dag`) manually or via a schedule.
@@ -70,15 +74,8 @@ pipeline.blackdesertm.hub/
 └── docker-compose.yaml
 ```
 
-## Key Points
-- **Data Storage**: Parquet and CSV files are stored locally before uploading to GCS.
-- **GCP Project**: `blackdesert-mobile-hub`.
-- **GCS Bucket**: `blackdesert-mobile-hub-scraping-data-bucket`.
-- **BigQuery Dataset**: `blackdesert_mobile_hub_data`.
-
 ## Troubleshooting
 - Ensure Airflow connections and variables are correctly configured.
 - Check logs in the Airflow web interface for task-specific errors.
 
 For further assistance, refer to the [Apache Airflow documentation](https://airflow.apache.org/docs/).
-
