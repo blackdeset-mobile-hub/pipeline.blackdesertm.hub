@@ -1,0 +1,14 @@
+analytics:
+  outputs:
+    dev:
+      type: bigquery
+      project: "{{ env_var('AIRFLOW_VAR_PROJECT_ID') }}"
+      dataset: raw_data
+      location: us-west1
+      keyfile: /opt/airflow/config/key.json
+      method: service-account
+      priority: interactive
+      threads: 1
+      job_execution_timeout_seconds: 300
+      job_retries: 1
+  target: dev
