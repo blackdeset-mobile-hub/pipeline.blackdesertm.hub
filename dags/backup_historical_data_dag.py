@@ -49,7 +49,7 @@ def backup_historical_data_dag():
         current_time = pendulum.now()
 
         logger.info(f"Starting backup from content_no: {current_content_no}")
-        while current_content_no < 500:
+        while current_content_no < 617749:
             post = scraper.fetch_blackdesert_post(current_content_no)
             current_content_no += 1
 

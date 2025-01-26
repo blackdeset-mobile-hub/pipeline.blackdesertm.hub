@@ -45,7 +45,7 @@ def scrape_and_store_content_dag():
     @task
     def scrape_content() -> dict:
         """Scrape content and save to files."""
-        last_content_no = 617749#Variable.get("last_content_no", default_var=617749)
+        last_content_no = Variable.get("last_content_no", default_var=617749)
         current_content_no = int(last_content_no)
 
         posts_by_year = {}
