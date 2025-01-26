@@ -42,7 +42,7 @@ The repository includes the following DAGs:
 3. Set the environment variables in the `docker-compose.yml` file:
    ```yaml
     environment:
-      - AIRFLOW_CONN_GCP_CONN=google-cloud-platform://?key_path=<key_file_path>&scope=https://www.googleapis.com/auth/cloud-platform&project=<project_id>&num_retries=5
+      - AIRFLOW_CONN_GCP_CONN=google-cloud-platform://?key_path=...&project=<project_id>&num_retries=5
       - AIRFLOW_VAR_PROJECT_ID=<your_project_id>
       - AIRFLOW_VAR_BUCKET_NAME=<your_bucket_name>
    ```
