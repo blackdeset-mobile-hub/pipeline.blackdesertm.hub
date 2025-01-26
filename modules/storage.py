@@ -18,7 +18,6 @@ def save_dataframe_to_files(data: dict, parquet_file_name: str, csv_file_name: s
 
     if "date" in df:
         df["date"] = pd.to_datetime(df["date"])
-    df['created_at'] = datetime.now()
 
     df.to_parquet(f"{data_dir}/{parquet_file_name}", engine="pyarrow", compression="snappy")
     df.to_csv(f"{data_dir}/{csv_file_name}", index=False)
